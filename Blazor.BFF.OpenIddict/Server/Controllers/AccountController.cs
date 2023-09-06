@@ -25,4 +25,4 @@ public class AccountController : ControllerBase
     },
     CookieAuthenticationDefaults.AuthenticationScheme,
     OpenIdConnectDefaults.AuthenticationScheme);
-}
+}

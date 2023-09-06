@@ -2,18 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
 using OpeniddictServer.Data;
 using Fido2Identity;
 
@@ -40,6 +33,9 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
         /// </summary>
         [BindProperty]
         public InputModel Input { get; set; }
+
+        [BindProperty]
+        public PasskeyModel Passkey { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -90,6 +86,25 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
             public bool RememberMe { get; set; }
         }
 
+        public class PasskeyModel
+        {
+            /// <summary>
+            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+            ///     directly from your code. This API may change or be removed in future releases.
+            /// </summary>
+            [Required]
+            [EmailAddress]
+            public string Email { get; set; }
+
+            /// <summary>
+            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+            ///     directly from your code. This API may change or be removed in future releases.
+            /// </summary>
+            [Display(Name = "Remember me?")]
+            public bool RememberMe { get; set; }
+        }
+
+
         public async Task OnGetAsync(string returnUrl = null)
         {
             if (!string.IsNullOrEmpty(ErrorMessage))
@@ -107,11 +122,13 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
             ReturnUrl = returnUrl;
         }
 
-        public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+        public async Task<IActionResult> OnPostStandardLoginAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            ModelState.Remove("Email");
 
             if (ModelState.IsValid)
             {
@@ -126,6 +143,13 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
                 if (result.RequiresTwoFactor)
                 {
                     var fido2ItemExistsForUser = await _fido2Store.GetCredentialsByUserNameAsync(Input.Email);
+
+                    //prefer Passkeys login over any other stored credentials
+                    if (fido2ItemExistsForUser.Any(c => c.IsPasskey))
+                    {
+                        return RedirectToPage("./LoginPasskey", new { Email=Input.Email, ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+                    }
+
                     if (fido2ItemExistsForUser.Count > 0)
                     {
                         return RedirectToPage("./LoginFido2Mfa", new { ReturnUrl = returnUrl, Input.RememberMe });
@@ -144,6 +168,14 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
                     return Page();
                 }
             }
+
+            // If we got this far, something failed, redisplay form
+            return Page();
+        }
+
+        public async Task<IActionResult> OnPostPasskeysLoginAsync(string returnUrl = null)
+        {
+            returnUrl ??= Url.Content("~/");
 
             // If we got this far, something failed, redisplay form
             return Page();

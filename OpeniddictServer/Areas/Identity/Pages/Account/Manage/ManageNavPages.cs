@@ -63,6 +63,8 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account.Manage
 
         public static string Fido2Mfa => "Fido2Mfa";
 
+        public static string Passkeys => "Passkeys";
+
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -112,6 +114,8 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account.Manage
         public static string TwoFactorAuthenticationNavClass(ViewContext viewContext) => PageNavClass(viewContext, TwoFactorAuthentication);
 
         public static string Fido2MfaNavClass(ViewContext viewContext) => PageNavClass(viewContext, Fido2Mfa);
+
+        public static string PasskeysNavClass(ViewContext viewContext) => PageNavClass(viewContext, Passkeys);
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used

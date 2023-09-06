@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpeniddictServer.Data;
 
@@ -11,9 +12,11 @@ using OpeniddictServer.Data;
 namespace OpeniddictServer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230728135003_Fido2StoredCredentialsPasskeys")]
+    partial class Fido2StoredCredentialsPasskeys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,7 +36,7 @@ namespace OpeniddictServer.Migrations
                     b.Property<Guid>("AaGuid")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<byte[]>("AttestationClientDataJson")
+                    b.Property<byte[]>("AttestationClientDataJSON")
                         .HasColumnType("varbinary(max)");
 
                     b.Property<byte[]>("AttestationObject")
@@ -56,9 +59,6 @@ namespace OpeniddictServer.Migrations
 
                     b.Property<string>("DevicePublicKeysJson")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsPasskey")
-                        .HasColumnType("bit");
 
                     b.Property<byte[]>("PublicKey")
                         .HasColumnType("varbinary(max)");

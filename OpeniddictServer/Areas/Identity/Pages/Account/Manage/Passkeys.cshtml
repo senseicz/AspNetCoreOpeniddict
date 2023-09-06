@@ -1,0 +1,125 @@
+﻿@page "/Passkeys/{handler?}"
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@functions{
+    public string? GetAntiXsrfRequestToken()
+    {
+        return Xsrf.GetAndStoreTokens(this.HttpContext).RequestToken;
+    }
+}
+@model OpeniddictServer.Areas.Identity.Pages.Account.Manage.PasskeysModel
+@{
+    Layout = "_Layout.cshtml";
+    ViewData["Title"] = "Passkeys management";
+    ViewData["ActivePage"] = ManageNavPages.Passkeys;
+}
+
+<h4>@ViewData["Title"]</h4>
+
+@if (Model.HavePasskeys)
+{
+    <div class="section">
+        <div class="container">
+            <h1 class="title is-1">Registered Passkeys</h1>
+            <div class="content">
+                <p>
+                    Following passkeys are registered with your account
+                </p>
+            </div>
+
+            <table class="table">
+                <thead>
+                <tr>
+                    <td>Date</td>
+                    <td>Desc</td>
+                    <td>Counter</td>
+                    <td>AAGuid</td>
+                    <td>UserHandle</td>
+                    <td>UserId</td>
+                    <td>Attestation Type</td>
+                    <td>Public Key</td>
+                </tr>
+                </thead>
+                @foreach (var item in Model.RegisteredPasskeys)
+                {
+                    var desc = "";
+                    var icon = "";
+                    var userHandle = System.Text.Encoding.UTF8.GetString(item.UserHandle);
+                    var userId = System.Text.Encoding.UTF8.GetString(item.UserId);
+                    var publicKey = System.Convert.ToBase64String(item.PublicKey);
+                    
+                    /*
+                    try
+                    {
+
+                        if (_mds != null)
+                        {
+                            var entry = await _mds.GetEntryAsync(item.AaGuid);
+                            desc = entry.MetadataStatement.Description.ToString();
+                            icon = entry.MetadataStatement.Icon.ToString();
+                        }
+
+                    }
+                    catch { }
+                    */
+
+                    <tr>
+                        <td>@item.RegDate</td>
+                        <td><img src="@icon" /> @desc</td>
+                        <td>@item.SignCount</td>
+                        <td>@item.AaGuid</td>
+                        <td>@userHandle</td>
+                        <td>@userId</td>
+                        <td>@item.CredType</td>
+                        <td>
+                            <details>
+                                <summary>@publicKey.Substring(0, 10).Substring(0, 10)...</summary>
+                                @publicKey
+                            </details>
+                        </td>
+                    </tr>
+                }
+            </table>
+
+        </div>
+    </div>
+}
+
+<div class="section">
+    <div class="container">
+        <h1 class="title is-1">Register new Passkey</h1>
+
+        <div class="columns">
+            <div class="column is-4">
+
+                <h3 class="title is-3">Add a Passkey</h3>
+                <form action="/Fido2Mfa" method="post" id="register">
+                    <input type="hidden" id="RequestVerificationToken" name="RequestVerificationToken" value="@GetAntiXsrfRequestToken()">
+                    <div class="field">
+                        <label class="label">Username</label>
+                        <div class="control has-icons-left has-icons-right">
+                            <input class="form-control" type="text" readonly placeholder="email" value="@User.Identity?.Name" name="username" required>
+                        </div>
+                    </div>
+
+                    <div class="field" style="margin-top:10px;">
+                        <div class="control">
+                            <button class="btn btn-primary">Add Passkey</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <div id="fido2mfadisplay"></div>
+
+    </div>
+</div>
+
+
+<div style="display:none" id="fido2TapYourSecurityKeyToFinishRegistration">FIDO2_TAP_YOUR_SECURITY_KEY_TO_FINISH_REGISTRATION</div>
+<div style="display:none" id="fido2RegistrationError">FIDO2_REGISTRATION_ERROR</div>
+
+<script src="~/js/helpers.js"></script>
+<script src="~/js/instant.js"></script>
+<script src="~/js/passkeys.register.js"></script>

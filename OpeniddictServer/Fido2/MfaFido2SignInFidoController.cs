@@ -116,7 +116,7 @@ public class MfaFido2SignInFidoController : Controller
             }
 
             // 3. Get credential counter from database
-            var storedCounter = creds.SignatureCounter;
+            var storedCounter = creds.SignCount;
 
             // 4. Create callback to check if userhandle owns the credentialId
             IsUserHandleOwnerOfCredentialIdAsync callback = async (args, cancellationToken) =>
@@ -131,8 +131,7 @@ public class MfaFido2SignInFidoController : Controller
             }
 
             // 5. Make the assertion
-            var res = await _lib.MakeAssertionAsync(
-                clientResponse, options, creds.PublicKey, storedCounter, callback);
+            var res = await _lib.MakeAssertionAsync(clientResponse, options, creds.PublicKey, creds.DevicePublicKeys, storedCounter, callback);
 
             // 6. Store the updated counter
             await _fido2Store.UpdateCounterAsync(res.CredentialId, res.Counter);

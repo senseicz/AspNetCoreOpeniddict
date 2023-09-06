@@ -63,7 +63,7 @@ public class Fido2Store
 
         if(cred != null)
         {
-            cred.SignatureCounter = counter;
+            cred.SignCount = counter;
             await _applicationDbContext.SaveChangesAsync();
         }
     }

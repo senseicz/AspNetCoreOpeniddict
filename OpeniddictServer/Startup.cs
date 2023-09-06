@@ -1,21 +1,16 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Quartz;
 using OpeniddictServer.Data;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Logging;
 using Fido2Identity;
 using Fido2NetLib;
+using System.Configuration;
 
 namespace OpeniddictServer;
 
@@ -50,10 +45,30 @@ public class Startup
           .AddDefaultUI()
           .AddTokenProvider<Fido2UserTwoFactorTokenProvider>("FIDO2");
 
-        services.Configure<Fido2Configuration>(Configuration.GetSection("fido2"));
+        var fido2ConfigSection = Configuration.GetSection("fido2");
+        services.Configure<Fido2Configuration>(fido2ConfigSection);
+        var fido2Config = fido2ConfigSection.Get<Fido2Configuration>();
+
         services.AddScoped<Fido2Store>();
 
         services.AddDistributedMemoryCache();
+
+        services.AddFido2(options => {
+                options.ServerDomain = fido2Config.ServerDomain;
+                options.ServerName = fido2Config.ServerName;
+                options.Origins = fido2Config.Origins;
+                options.TimestampDriftTolerance = fido2Config.TimestampDriftTolerance;
+                options.MDSCacheDirPath = fido2Config.MDSCacheDirPath;
+                options.BackupEligibleCredentialPolicy = fido2Config.BackupEligibleCredentialPolicy;
+                options.BackedUpCredentialPolicy = fido2Config.BackedUpCredentialPolicy;
+            })
+            .AddCachedMetadataService(config => {
+                config.AddFidoMetadataRepository(httpClientBuilder => {
+                    //TODO: any specific config you want for accessing the MDS
+                });
+            });
+
+
 
         services.AddSession(options =>
         {
@@ -98,7 +113,7 @@ public class Startup
                     builder
                         .AllowCredentials()
                         .WithOrigins(
-                            "https://localhost:4200", "https://localhost:4204")
+                            "https://localhost:4200", "https://localhost:4204", "https://localhost:44395")
                         .SetIsOriginAllowedToAllowWildcardSubdomains()
                         .AllowAnyHeader()
                         .AllowAnyMethod();

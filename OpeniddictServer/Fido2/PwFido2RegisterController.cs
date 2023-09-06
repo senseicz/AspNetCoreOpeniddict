@@ -131,10 +131,10 @@ public class PwFido2RegisterController : Controller
                     Descriptor = new PublicKeyCredentialDescriptor(success.Result.CredentialId),
                     PublicKey = success.Result.PublicKey,
                     UserHandle = success.Result.User.Id,
-                    SignatureCounter = success.Result.Counter,
+                    SignCount = success.Result.Counter,
                     CredType = success.Result.CredType,
                     RegDate = DateTime.Now,
-                    AaGuid = success.Result.Aaguid
+                    AaGuid = success.Result.AaGuid
                 });
             }
 

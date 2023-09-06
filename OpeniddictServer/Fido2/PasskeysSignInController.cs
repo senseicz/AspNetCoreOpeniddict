@@ -1,41 +1,29 @@
-﻿using System.Text;
-using Fido2NetLib.Objects;
+﻿using Fido2NetLib.Objects;
 using Fido2NetLib;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 using OpeniddictServer.Data;
 
 namespace Fido2Identity;
 
 [Route("api/[controller]")]
-public class PwFido2SignInController : Controller
+public class PasskeysSignInController : Controller
 {
-    private readonly Fido2 _lib;
+    private readonly IFido2 _fido2;
     private readonly Fido2Store _fido2Store;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IOptions<Fido2Configuration> _optionsFido2Configuration;
 
-    public PwFido2SignInController(
+    private const string PasskeysAssertionOptions = "passkeys.assertionOptions";
+
+    public PasskeysSignInController(
+        IFido2 fido2,
         Fido2Store fido2Store,
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
-        IOptions<Fido2Configuration> optionsFido2Configuration)
+        SignInManager<ApplicationUser> signInManager)
     {
-        _userManager = userManager;
-        _optionsFido2Configuration = optionsFido2Configuration;
+        _fido2 = fido2;
         _signInManager = signInManager;
-        _userManager = userManager;
         _fido2Store = fido2Store;
 
-        _lib = new Fido2(new Fido2Configuration()
-        {
-            ServerDomain = _optionsFido2Configuration.Value.ServerDomain,
-            ServerName = _optionsFido2Configuration.Value.ServerName,
-            Origins = _optionsFido2Configuration.Value.Origins,
-            TimestampDriftTolerance = _optionsFido2Configuration.Value.TimestampDriftTolerance
-        });
     }
 
     private static string FormatException(Exception e)
@@ -45,46 +33,51 @@ public class PwFido2SignInController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Route("/pwassertionOptions")]
+    [Route("/assertionOptions")]
     public async Task<ActionResult> AssertionOptionsPost([FromForm] string username, [FromForm] string userVerification)
     {
         try
         {
+            if (string.IsNullOrEmpty(username))
+            {
+                throw new ArgumentException("Username is empty");
+            }
+
+            var applicationUser = await _signInManager.UserManager.FindByEmailAsync(username);
+
+            if (applicationUser == null)
+            {
+                throw new ArgumentException("Username was not registered");
+            }
 
             var existingCredentials = new List<PublicKeyCredentialDescriptor>();
 
-            if (!string.IsNullOrEmpty(username))
+            var storedCredentials = await _fido2Store.GetCredentialsByUserNameAsync(username);
+
+            if (storedCredentials == null || !storedCredentials.Any())
             {
-                var ApplicationUser = await _userManager.FindByNameAsync(username);
-                var user = new Fido2User
-                {
-                    DisplayName = ApplicationUser.UserName,
-                    Name = ApplicationUser.UserName,
-                    Id = Encoding.UTF8.GetBytes(ApplicationUser.UserName) // byte representation of userID is required
-                };
-
-                if (user == null) throw new ArgumentException("Username was not registered");
-
-                // 2. Get registered credentials from database
-                var items = await _fido2Store.GetCredentialsByUserNameAsync(ApplicationUser.UserName);
-                existingCredentials = items.Select(c => c.Descriptor).NotNull().ToList();
+                throw new ArgumentException("No passkey registered for " + username);
             }
 
-            var exts = new AuthenticationExtensionsClientInputs
+            existingCredentials = storedCredentials.Select(c => c.Descriptor).NotNull().ToList();
+
+            var exts = new AuthenticationExtensionsClientInputs()
             {
+                Extensions = true,
                 UserVerificationMethod = true,
+                DevicePubKey = new AuthenticationExtensionsDevicePublicKeyInputs()
             };
 
             // 3. Create options
             var uv = string.IsNullOrEmpty(userVerification) ? UserVerificationRequirement.Discouraged : userVerification.ToEnum<UserVerificationRequirement>();
-            var options = _lib.GetAssertionOptions(
+            var options = _fido2.GetAssertionOptions(
                 existingCredentials,
                 uv,
                 exts
             );
 
             // 4. Temporarily store options, session/in-memory cache/redis/db
-            HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
+            HttpContext.Session.SetString(PasskeysAssertionOptions, options.ToJson());
 
             // 5. Return options to client
             return Json(options);
@@ -98,13 +91,13 @@ public class PwFido2SignInController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Route("/pwmakeAssertion")]
-    public async Task<JsonResult> MakeAssertion([FromBody] AuthenticatorAssertionRawResponse clientResponse)
+    [Route("/makeAssertion")]
+    public async Task<JsonResult> MakeAssertion([FromBody] AuthenticatorAssertionRawResponse clientResponse, [FromHeader] bool rememberMe)
     {
         try
         {
             // 1. Get the assertion options we sent the client
-            var jsonOptions = HttpContext.Session.GetString("fido2.assertionOptions");
+            var jsonOptions = HttpContext.Session.GetString(PasskeysAssertionOptions);
             var options = AssertionOptions.FromJson(jsonOptions);
 
             // 2. Get registered credential from database
@@ -125,24 +118,27 @@ public class PwFido2SignInController : Controller
                 return storedCreds.Any(c => c.Descriptor != null && c.Descriptor.Id.SequenceEqual(args.CredentialId));
             };
 
-            if(creds.PublicKey == null)
+            if (creds.PublicKey == null)
             {
                 throw new InvalidOperationException($"No public key");
             }
 
             // 5. Make the assertion
-            var res = await _lib.MakeAssertionAsync(clientResponse, options, creds.PublicKey, creds.DevicePublicKeys, storedCounter, callback);
+            var res = await _fido2.MakeAssertionAsync(clientResponse, options, creds.PublicKey, creds.DevicePublicKeys, storedCounter, callback);
 
             // 6. Store the updated counter
             await _fido2Store.UpdateCounterAsync(res.CredentialId, res.Counter);
 
-            var ApplicationUser = await _userManager.FindByNameAsync(creds.UserName);
-            if (ApplicationUser == null)
+            // complete sign-in
+            var userName = creds.UserName!;
+
+            var user = await _signInManager.UserManager.FindByEmailAsync(userName);
+            if (user == null)
             {
-                throw new InvalidOperationException($"Unable to load user.");
+                throw new InvalidOperationException($"Unable to load user {userName}.");
             }
 
-            await _signInManager.SignInAsync(ApplicationUser, isPersistent: false);
+            await _signInManager.SignInAsync(user, rememberMe);
 
             // 7. return OK to client
             return Json(res);

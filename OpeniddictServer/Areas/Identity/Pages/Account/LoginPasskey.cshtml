@@ -1,0 +1,71 @@
+﻿@page
+
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@functions{
+    public string? GetAntiXsrfRequestToken()
+    {
+        return Xsrf.GetAndStoreTokens(this.HttpContext).RequestToken;
+    }
+}
+@model OpeniddictServer.Areas.Identity.Pages.Account.LoginPasskeyModel
+
+
+<h4>Login with passkey</h4>
+<div class="section">
+    <div class="container">
+        
+        <h1 class="title is-1">Passkey login</h1>
+
+        <div class="notification is-danger" style="display:none">
+            Please note: Your browser does not seem to support WebAuthn yet. <a href="https://caniuse.com/#search=webauthn" target="_blank">Supported browsers</a>
+        </div>
+
+        <div class="columns">
+            <div class="column is-4">
+
+                <h3 class="title is-3">Passkey</h3>
+                <form id="passkey" method="post" asp-page-handler="PasskeysLogin">
+                    <input type="hidden" id="RequestVerificationToken" name="RequestVerificationToken" value="@GetAntiXsrfRequestToken()">
+                    <h3>Use a local account to log in using your passkey.</h3>
+                    <hr/>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="form-floating">
+                        <input asp-for="Passkey.Email" class="form-control" autocomplete="username" aria-required="true" disabled="disabled"/>
+                        <label asp-for="Passkey.Email" class="form-label"></label>
+                    </div>
+                    
+                    <div>
+                        <div class="checkbox">
+                            <label asp-for="Passkey.RememberMe" class="form-label">
+                                <input class="form-check-input" asp-for="Passkey.RememberMe" />
+                                @Html.DisplayNameFor(m => m.Passkey.RememberMe)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button id="login-passkey-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="fido2logindisplay"></div>
+
+    </div>
+</div>
+
+<div style="display:none" id="fido2TapKeyToLogin">FIDO2_TAP_YOUR_SECURITY_KEY_TO_LOGIN</div>
+<div style="display:none" id="fido2CouldNotVerifyAssertion">FIDO2_COULD_NOT_VERIFY_ASSERTION</div>
+<div style="display:none" id="passkeysReturnUrl">@Model.Passkey.ReturnUrl</div>
+
+
+@section Scripts {
+    <partial name="_PasskeysLoginScriptsPartial" />
+}
+
+<script>
+    window.onload = function () {
+        handleSignInSubmit();
+    };
+</script>

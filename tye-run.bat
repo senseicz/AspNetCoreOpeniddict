@@ -1,0 +1,1 @@
+tye run --port 4200 --dashboard

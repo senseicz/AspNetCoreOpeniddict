@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_dev", "_dev", "{03B25853-9
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 		README.md = README.md
+		tye-run.bat = tye-run.bat
+		tye.yaml = tye.yaml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Blazor.BFF.OpenIddict", "Blazor.BFF.OpenIddict", "{E7C9EF07-C69D-4016-A44E-78DEFFE1CC3A}"

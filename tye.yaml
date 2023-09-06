@@ -1,0 +1,39 @@
+# tye application configuration file
+# read all about it at https://github.com/dotnet/tye
+#
+# when you've given us a try, we'd love to know what you think:
+#    https://aka.ms/AA7q20u
+#
+name: OpenIdDict
+services:
+  # OpenIdDict Server
+ # - name: OpenIdDictServer
+ #   project: OpeniddictServer/OpeniddictServer.csproj
+ #   bindings:
+ #     - port: 44395
+ #       protocol: https
+ #   env:
+ #     - name: ASPNETCORE_ENVIRONMENT
+ #       value: development
+ #     - name: ASPNETCORE_HOSTINGSTARTUPASSEMBLIES
+ #       value: Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation
+
+  #Resorce Server (API)
+  - name: ResourceServer
+    project: ResourceServer/ResourceServer.csproj 
+    bindings:
+      - port: 44390
+        protocol: https
+    env:
+      - name: ASPNETCORE_ENVIRONMENT
+        value: desktop
+
+#   #Blazor BFF
+  - name: BlazorBff
+    project: Blazor.BFF.OpenIddict/Server/Blazor.BFF.OpenIddict.Server.csproj  
+    bindings:
+      - port: 5001
+        protocol: https
+    env:
+      - name: ASPNETCORE_ENVIRONMENT
+        value: desktop
