@@ -25,6 +25,8 @@
                     <div class="card-body p-5">
                         <h1 class="fs-4 card-title fw-bold mb-4">Login</h1>
                         <form method="POST" class="needs-validation">
+                            <input type="hidden" id="RequestVerificationToken" name="RequestVerificationToken" value="@GetAntiXsrfRequestToken()">
+                          
                             <div class="mb-3">
                                 <label asp-for="Input.Email" class="mb-2 text-muted">E-Mail Address</label>
                                 <input asp-for="Input.Email" 
@@ -33,29 +35,41 @@
                                        autocomplete="username" 
                                        aria-required="true" 
                                        required 
-                                       autofocus />
+                                       autofocus 
+                                       disabled="@Model.RenderPageForPasskeyChallenge"/>
                                 <span asp-validation-for="Input.Email" class="invalid-feedback">
                                 </span>
                             </div>
 
                             <div class="d-flex align-items-center">
                                 <div class="form-check">
-                                    <input type="checkbox" asp-for="Input.RememberMe" class="form-check-input">
+                                    <input type="checkbox" asp-for="Input.RememberMe" 
+                                           class="form-check-input"
+                                           disabled="@Model.RenderPageForPasskeyChallenge">
                                     <label asp-for="Input.RememberMe" class="form-check-label">Remember Me</label>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-primary ms-auto">
-                                    Login
-                                </button>
+                                @if(!Model.RenderPageForPasskeyChallenge)
+                                {
+                                    <button type="submit" class="btn btn-primary ms-auto">
+                                        Login
+                                    </button>
+                                }
                             </div>
                         </form>
                     </div>
-                    <div class="card-footer py-3 border-0">
-                        <div class="text-center">
-                            Don't have an account? 
-                            <a class="text-dark" asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Create one</a>
+                    
+                    
+                    @if (!Model.RenderPageForPasskeyChallenge)
+                    {
+                        <div class="card-footer py-3 border-0">
+                            <div class="text-center">
+                                Don't have an account?
+                                <a class="text-dark" asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Create one</a>
+                            </div>
                         </div>
-                    </div>
+                    }
+
                 </div>
                 <div class="text-center mt-5 text-muted">
                     Copyright &copy; @DateTime.Today.Year &mdash; OpenIdDict
@@ -65,7 +79,33 @@
     </div>
 </section>
 
+@if (Model.RenderPageForPasskeyChallenge)
+{
+    <div style="display:none" id="fido2TapKeyToLogin">FIDO2_TAP_YOUR_SECURITY_KEY_TO_LOGIN</div>
+    <div style="display:none" id="fido2CouldNotVerifyAssertion">FIDO2_COULD_NOT_VERIFY_ASSERTION</div>
+    <div style="display:none" id="passkeysReturnUrl">@Model.ReturnUrl</div>
+}
+
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    @if (Model.RenderPageForPasskeyChallenge)
+    {
+        <partial name="_PasskeysLoginScriptsPartial" />
+
+        <script>
+            window.onload = function () {
+                handleSignIn('@Model.Input.Email', @Model.Input.RememberMe.ToString().ToLowerInvariant());
+            };
+        </script>
+    }
 }
+
+@* @if (Model.RenderPageForPasskeyChallenge)
+{
+    <script>
+        window.onload = function () {
+            handleSignIn('@Model.Input.Email', @Model.Input.RememberMe);
+        };
+    </script>
+} *@

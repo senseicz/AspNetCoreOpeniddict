@@ -39,6 +39,8 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
         [TempData]
         public string ErrorMessage { get; set; }
 
+        public bool RenderPageForPasskeyChallenge { get; set; }
+
         public class InputModel
         {
             [Required]
@@ -90,9 +92,8 @@ namespace OpeniddictServer.Areas.Identity.Pages.Account
                     //prefer Passkeys login over any other stored credentials
                     if (fido2ItemExistsForUser.Any(c => c.IsPasskey))
                     {
-                        var loginModel = new Models.LoginModel(Input.Email, Input.RememberMe, returnUrl);
-                        TempData.Put(ModelNames.LoginModel, loginModel);
-                        return RedirectToPage("./LoginPasskey");
+                        RenderPageForPasskeyChallenge = true;
+                        return Page();
                     }
 
                     if (fido2ItemExistsForUser.Count > 0)

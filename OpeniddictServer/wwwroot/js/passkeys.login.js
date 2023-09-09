@@ -1,10 +1,16 @@
-﻿document.getElementById('login-passkey-submit').addEventListener('click', handleSignInSubmit);
+﻿let loginPasskeySubmitButton = document.getElementById('login-passkey-submit');
+loginPasskeySubmitButton && loginPasskeySubmitButton.addEventListener('click', handleSignInSubmit);
 
 async function handleSignInSubmit(event) {
     event && event.preventDefault();
 
     let username = document.forms['passkey']['Passkey.Email'].value;
     let rememberMe = document.forms['passkey']['Passkey.RememberMe'].value;
+
+    await handleSignIn(username, rememberMe);
+}
+
+async function handleSignIn(username, rememberMe) {
     let user_verification = "preferred";
 
     // prepare form post data
