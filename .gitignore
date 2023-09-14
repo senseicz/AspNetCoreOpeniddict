@@ -31,3 +31,5 @@ AspNetCoreResourceServer/bin
 /oidc-server.txt
 /OpeniddictServer/OpeniddictServer.csproj.user
 /OpeniddictServer/Data/openiddict-server.db
+/.idea/.idea.AspNetCoreOpeniddict/.idea
+/AspNetCoreOpeniddict.sln.DotSettings.user
