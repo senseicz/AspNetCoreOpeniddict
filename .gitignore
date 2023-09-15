@@ -33,3 +33,4 @@ AspNetCoreResourceServer/bin
 /OpeniddictServer/Data/openiddict-server.db
 /.idea/.idea.AspNetCoreOpeniddict/.idea
 /AspNetCoreOpeniddict.sln.DotSettings.user
+/.tye/process_store
